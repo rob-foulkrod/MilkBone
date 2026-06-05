@@ -76,6 +76,25 @@ jobs:
           slot-name: ${{ env.STAGING_SLOT }}
           package: ./publish
 
+      - name: Validate staging health before swap
+        # Gate the swap on the /api/health endpoint so a broken build never reaches production.
+        run: |
+          health_url="https://${WEBAPP_NAME}-${STAGING_SLOT}.azurewebsites.net/api/health"
+          echo "Probing $health_url"
+          for attempt in $(seq 1 10); do
+            status=$(curl -s -o /tmp/health.json -w "%{http_code}" "$health_url" || echo "000")
+            echo "Attempt $attempt: HTTP $status"
+            if [ "$status" = "200" ]; then
+              cat /tmp/health.json
+              echo "Staging slot is healthy."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Staging slot failed health check; aborting before swap."
+          cat /tmp/health.json || true
+          exit 1
+
       - name: Swap staging into production
         # Zero-downtime cutover: promote the validated staging slot to production.
         uses: azure/cli@v2

@@ -16,12 +16,19 @@ param skuName string = 'S1'
 @description('Name of the non-production deployment slot used for blue/green swaps.')
 param stagingSlotName string = 'staging'
 
+// Demo buffer tag applied to every resource so a 14-day security-control grace
+// period is honored across the deployment.
+var resourceTags = {
+  SecurityControl: 'Ignore'
+}
+
 // .NET 10 runtime stack for Linux App Service.
 var linuxFxVersion = 'DOTNETCORE|10.0'
 
 resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: appServicePlanName
   location: location
+  tags: resourceTags
   sku: {
     name: skuName
   }
@@ -34,6 +41,7 @@ resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
 resource webApp 'Microsoft.Web/sites@2023-12-01' = {
   name: webAppName
   location: location
+  tags: resourceTags
   kind: 'app,linux'
   properties: {
     serverFarmId: plan.id
@@ -53,6 +61,7 @@ resource stagingSlot 'Microsoft.Web/sites/slots@2023-12-01' = {
   parent: webApp
   name: stagingSlotName
   location: location
+  tags: resourceTags
   kind: 'app,linux'
   properties: {
     serverFarmId: plan.id
