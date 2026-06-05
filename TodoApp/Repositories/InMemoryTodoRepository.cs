@@ -9,19 +9,42 @@ public class InMemoryTodoRepository : ITodoRepository
 
     public InMemoryTodoRepository()
     {
-        // Seed with a couple of sample todos
+        // Seeded from GitHub Issues
         Add(new TodoItem
         {
-            Title = "Welcome to MilkBone Todo!",
-            Description = "This is your first todo item. Click edit to update it or check it off when done.",
-            Priority = TodoPriority.High,
-            DueDate = DateTime.UtcNow.AddDays(1)
+            Title = "App doesn't work",
+            Description = "Milkbone refuses to start, crashes immediately, or freezes. Expected: launch without drama, actually do things, not emotionally abandon the user. (Issue #3)",
+            Priority = TodoPriority.Critical
         });
         Add(new TodoItem
         {
-            Title = "Explore the app",
-            Description = "Create, edit, and complete your todos. Use priorities and due dates to stay organized.",
+            Title = "Real time data Integration missing between EA Tools",
+            Description = "Real time data integration is missing between EA Tools. (Issue #4)",
+            Priority = TodoPriority.High
+        });
+        Add(new TodoItem
+        {
+            Title = "Text Notifications Not Working Correctly",
+            Description = "Reminder notifications are not being sent via text. Example: reminder to buy kitty litter did not trigger a text message. (Issue #2)",
+            Priority = TodoPriority.High
+        });
+        Add(new TodoItem
+        {
+            Title = "Bug: My code has an attitude",
+            Description = "Processing pipeline logs escalating warnings and errors instead of handling requests gracefully. Investigate and resolve the attitude problem. (Issue #6)",
             Priority = TodoPriority.Medium
+        });
+        Add(new TodoItem
+        {
+            Title = "Add description to README",
+            Description = "The README file requires a proper description outlining the application's functionality. (Issue #7)",
+            Priority = TodoPriority.Low
+        });
+        Add(new TodoItem
+        {
+            Title = "Study Time",
+            Description = "Schedule dedicated study time for the Microsoft certification exam. (Issue #5)",
+            Priority = TodoPriority.Low
         });
     }
 
