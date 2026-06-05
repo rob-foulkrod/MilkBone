@@ -27,10 +27,29 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 
+app.MapGet("/api/health", (IConfiguration configuration, IHostEnvironment environment) =>
+{
+    if (!string.IsNullOrWhiteSpace(configuration["IS_BROKEN"]))
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            title: "Simulated health failure",
+            detail: "The IS_BROKEN setting is enabled, so the demo health endpoint is intentionally returning an error.");
+    }
+
+    return Results.Ok(new
+    {
+        status = "ok",
+        environment = environment.EnvironmentName,
+        timestamp = DateTimeOffset.UtcNow
+    });
+});
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Todo}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-
 app.Run();
+
+public partial class Program;
