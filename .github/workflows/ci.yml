@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        # Start from the current branch so the workflow validates the exact code being pushed.
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        # The runner needs the .NET SDK before any restore, build, or validation commands run.
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        # Restore resolves the project and its NuGet dependencies before validation.
+        run: dotnet restore TodoApp.Tests/TodoApp.Tests.csproj
+
+      - name: Validate dependencies
+        # This catches vulnerable or risky package references before the rest of the pipeline continues.
+        run: dotnet list TodoApp.Tests/TodoApp.Tests.csproj package --vulnerable --include-transitive
+
+      - name: Check formatting / lint-style rules
+        # A clean format check helps keep the codebase consistent across contributors.
+        run: dotnet format TodoApp/TodoApp.csproj --verify-no-changes
+
+  test:
+    # Compile and test together: the coverage run builds the projects, so a
+    # separate build job would only duplicate that work without being reused.
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore TodoApp.Tests/TodoApp.Tests.csproj
+
+      - name: Install coverage CLI
+        # Use the official Microsoft coverage tool to generate a Cobertura report directly from the test run.
+        run: dotnet tool install --tool-path .tools dotnet-coverage
+
+      - name: Run tests with coverage
+        # This is the main quality gate: run the suite and produce a Cobertura report for inspection.
+        run: ./.tools/dotnet-coverage collect "dotnet test TodoApp.Tests/TodoApp.Tests.csproj --no-restore --settings coverlet.runsettings --logger trx;LogFileName=test-results.trx" -f cobertura -o ./TestResults/coverage.cobertura.xml --nologo
+
+      - name: Enforce minimum coverage thresholds
+        # Fail the job if the coverage is too low, which keeps the branch from drifting.
+        run: python scripts/check_coverage.py --coverage-file ./TestResults/coverage.cobertura.xml
+
+      - name: Upload coverage results
+        # Preserve the coverage report even if the gate fails, so failures are easy to diagnose.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-results
+          path: ./TestResults
+
+  package:
+    # Only build the deployable artifact once everything else has passed.
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish Release build
+        # Produce an actual Release-configured publish output for the Azure Web App deployment path.
+        run: dotnet publish TodoApp/TodoApp.csproj -c Release -o ./publish
+
+      - name: Upload production artifact
+        # Save the published output as the deployable artifact for the eventual Azure Web App deployment.
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-build
+          path: ./publish
