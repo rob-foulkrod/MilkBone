@@ -31,10 +31,6 @@ jobs:
       WEBAPP_NAME: milkbone-webapp
       STAGING_SLOT: staging
     steps:
-      - name: Checkout repository
-        # The Bicep template lives in the repo, so we need the source available.
-        uses: actions/checkout@v4
-
       - name: Azure login (OIDC)
         # Passwordless federated login using the app registration's client ID.
         uses: azure/login@v2
@@ -42,6 +38,15 @@ jobs:
           client-id: ${{ env.AZURE_CLIENT_ID }}
           tenant-id: ${{ env.AZURE_TENANT_ID }}
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Download CI infrastructure artifact
+        # Use the exact Bicep template that CI validated, rather than a fresh checkout.
+        uses: actions/download-artifact@v4
+        with:
+          name: infrastructure
+          path: ./infra
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Provision infrastructure (Bicep)
         # Idempotently create/update the plan, web app, and staging slot.
