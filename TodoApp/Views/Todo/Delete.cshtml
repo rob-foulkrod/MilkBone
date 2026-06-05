@@ -1,0 +1,44 @@
+@model TodoApp.Models.TodoItem
+@{
+    ViewData["Title"] = "Delete Todo";
+}
+
+<div class="page-header">
+    <h1>🗑️ Delete Todo</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Back</a>
+</div>
+
+<div class="mb-form-card">
+    <div class="alert alert-danger mb-4">
+        <strong>Are you sure?</strong> This action cannot be undone.
+    </div>
+
+    <dl class="row">
+        <dt class="col-sm-3">Title</dt>
+        <dd class="col-sm-9">@Model.Title</dd>
+
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <dt class="col-sm-3">Description</dt>
+            <dd class="col-sm-9">@Model.Description</dd>
+        }
+
+        <dt class="col-sm-3">Priority</dt>
+        <dd class="col-sm-9">@Model.Priority</dd>
+
+        @if (Model.DueDate.HasValue)
+        {
+            <dt class="col-sm-3">Due Date</dt>
+            <dd class="col-sm-9">@Model.DueDate.Value.ToString("MMMM d, yyyy")</dd>
+        }
+
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9">@(Model.IsCompleted ? "✅ Completed" : "🔵 Active")</dd>
+    </dl>
+
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex gap-2 mt-4">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-danger">Yes, Delete It</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>

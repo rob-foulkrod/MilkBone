@@ -1,0 +1,65 @@
+@model TodoApp.Models.TodoItem
+@{
+    ViewData["Title"] = "Edit Todo";
+}
+
+<div class="page-header">
+    <h1>✏️ Edit Todo</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Back</a>
+</div>
+
+<div class="mb-form-card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" style="display:none" id="val-summary"></div>
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label">Title <span class="text-danger">*</span></label>
+            <input asp-for="Title" class="form-control" autofocus />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label">Description</label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Description" class="text-danger small"></span>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label asp-for="Priority" class="form-label">Priority</label>
+                <select asp-for="Priority" class="form-select"
+                        asp-items="Html.GetEnumSelectList<TodoApp.Models.TodoPriority>()"></select>
+            </div>
+            <div class="col-sm-6">
+                <label asp-for="DueDate" class="form-label">Due Date</label>
+                <input asp-for="DueDate" type="date" class="form-control" />
+                <span asp-validation-for="DueDate" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <div class="form-check">
+                <input asp-for="IsCompleted" class="form-check-input" />
+                <label asp-for="IsCompleted" class="form-check-label">Mark as completed</label>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger ms-auto">Delete</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        const vs = document.getElementById('val-summary');
+        if (vs && vs.querySelector('li')) vs.style.display = '';
+    </script>
+}

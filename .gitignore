@@ -1,0 +1,22 @@
+## .NET Build artifacts
+**/bin/
+**/obj/
+*.user
+.vs/
+
+## Publish output
+**/publish/
+
+## NuGet
+*.nupkg
+*.snupkg
+
+## Rider / VS / VSCode
+.idea/
+*.suo
+*.DotSettings
+.vscode/
+
+## OS
+.DS_Store
+Thumbs.db
