@@ -1,0 +1,84 @@
+name: CD
+
+# Continuous deployment runs only after a successful CI run on main.
+# It consumes the production-build artifact produced by ci.yml, provisions
+# infrastructure, deploys to the staging slot, and swaps into production.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+# OIDC federated login to Azure requires id-token: write. No client secret is stored.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    # Only deploy when the upstream CI run actually succeeded and was on main.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AZURE_CLIENT_ID: e9c317fe-0ae4-4a10-b29f-4abb94dd8849
+      AZURE_TENANT_ID: f33ccec0-9dd1-498d-a573-a859c975456e
+      AZURE_SUBSCRIPTION_ID: 96d0d57a-566f-4b73-bc46-345620f9a3e7
+      RESOURCE_GROUP: milkbone_deploy
+      # Web App names cannot contain underscores, so milkbone_webapp -> milkbone-webapp.
+      WEBAPP_NAME: milkbone-webapp
+      STAGING_SLOT: staging
+    steps:
+      - name: Checkout repository
+        # The Bicep template lives in the repo, so we need the source available.
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        # Passwordless federated login using the app registration's client ID.
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Provision infrastructure (Bicep)
+        # Idempotently create/update the plan, web app, and staging slot.
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment group create \
+              --resource-group "$RESOURCE_GROUP" \
+              --template-file infra/main.bicep \
+              --parameters webAppName="$WEBAPP_NAME" stagingSlotName="$STAGING_SLOT"
+
+      - name: Download CI production artifact
+        # Pull the deployable build from the CI run that triggered this workflow.
+        uses: actions/download-artifact@v4
+        with:
+          name: production-build
+          path: ./publish
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to staging slot
+        # Deploy into staging first so production keeps serving until the swap.
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.WEBAPP_NAME }}
+          slot-name: ${{ env.STAGING_SLOT }}
+          package: ./publish
+
+      - name: Swap staging into production
+        # Zero-downtime cutover: promote the validated staging slot to production.
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az webapp deployment slot swap \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "$WEBAPP_NAME" \
+              --slot "$STAGING_SLOT" \
+              --target-slot production
