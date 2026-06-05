@@ -13,6 +13,9 @@
 ## Test & coverage output
 **/TestResults/
 
+## Compiled Bicep output
+infra/*.json
+
 ## NuGet
 *.nupkg
 *.snupkg

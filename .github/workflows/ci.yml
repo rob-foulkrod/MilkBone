@@ -38,6 +38,10 @@ jobs:
         # A clean format check helps keep the codebase consistent across contributors.
         run: dotnet format TodoApp/TodoApp.csproj --verify-no-changes
 
+      - name: Validate infrastructure (Bicep)
+        # Compile and lint the IaC so infra errors fail fast alongside the code checks.
+        run: az bicep build --file infra/main.bicep --stdout > /dev/null
+
   test:
     # Compile and test together: the coverage run builds the projects, so a
     # separate build job would only duplicate that work without being reused.
@@ -98,3 +102,10 @@ jobs:
         with:
           name: production-build
           path: ./publish
+
+      - name: Upload infrastructure artifact
+        # Ship the validated Bicep template so CD deploys the exact infra that CI checked.
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure
+          path: infra/
