@@ -7,6 +7,12 @@
 ## Publish output
 **/publish/
 
+## Local tool installs
+.tools/
+
+## Test & coverage output
+**/TestResults/
+
 ## NuGet
 *.nupkg
 *.snupkg
